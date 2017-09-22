@@ -13,8 +13,9 @@ use List::MoreUtils qw( natatime );
 use Try::Tiny;
 
 # Get access to encode/decode_bson
-use XSLoader;
-XSLoader::load("MongoDB");
+#use XSLoader;
+#XSLoader::load("MongoDB");
+use MongoDB::BSON;
 
 use Data::Dumper;
 
@@ -368,7 +369,7 @@ sub _aggregate_messages {
 	    die( "Error querying TSDS web service: " . $self->websvc->get_error() );
 	}
 
-	$results = MongoDB::BSON::decode_bson($results);
+	$results = MongoDB::BSON->new()->decode_one($results);
 
 	if ( $results->{'error'} ) {
 

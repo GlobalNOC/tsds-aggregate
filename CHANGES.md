@@ -1,3 +1,11 @@
+## GRNOC TSDS Aggregate 1.0.5 -- Tue Sep 5 2017
+
+### Features:
+* ISSUE=3222 Updated to work with 1.0.0+ line of perl MongoDB driver.
+This change is backwards incompatible with earlier versions of the driver, much like
+the driver itself.
+
+
 ## GRNOC TSDS Aggregate 1.0.4 -- Wed Oct 5 2016
 
 ### Fixes:
