@@ -1,0 +1,12 @@
+[Unit]
+Description=Tsds-aggregate-workers
+
+[Service]
+User=root
+Group=root
+ExecStart=/usr/bin/tsds-aggregate-workers --config /etc/grnoc/tsds/aggregate/config.xml
+PIDFile=/var/run/tsds-aggregate-workers.pid
+
+
+[Install]
+WantedBy=multi-user.target
