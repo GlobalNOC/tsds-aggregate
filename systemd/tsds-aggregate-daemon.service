@@ -1,0 +1,12 @@
+[Unit]
+Description=Tsds-aggregate-daemon
+
+[Service]
+User=root
+Group=root
+ExecStart=/usr/bin/tsds-aggregate-daemon --config /etc/grnoc/tsds/aggregate/config.xml
+PIDFile=/var/run/tsds-aggregate-daemon.pid
+
+
+[Install]
+WantedBy=multi-user.target
