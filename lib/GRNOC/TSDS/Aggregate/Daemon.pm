@@ -469,7 +469,7 @@ sub _evaluate_policies {
 	    if (! $any_failed && ! defined $self->force_start){
 		$self->mongo->get_database($db_name)
 		    ->get_collection("aggregate")
-		    ->update({"name" => $name}, {'$set' => {"last_run" => $floored}});		
+		    ->update_one({"name" => $name}, {'$set' => {"last_run" => $floored}});		
 	    }
 	    # Since we ran, the next time we need to look is the next time this
 	    # the next time its interval is coming around in the future
@@ -565,6 +565,16 @@ sub _get_measurements {
 	}
     }
 
+    # If we're not forcing the timeframe, only look for active measurements
+    if (! defined $self->force_start){
+	if (defined $obj->{'$and'}){
+	    push(@{$obj->{'$and'}}, {"end" => undef});
+	}
+	else {
+	    $obj = {'$and' => [$obj, {"end" => undef}]};
+	}	
+    }
+
     log_debug("Fetching from $db_name.measurements where " . Dumper($obj));
 
     # Step 1 is to get a distinct set of identifiers that this query
@@ -598,9 +608,7 @@ sub _get_measurements {
 	foreach my $cache_name (keys %{$self->identifiers()}){
 	    next if ($cache_name eq ($db_name . $name)); # don't look at ourselves for a cache
 	    next unless ($cache_name =~ /^$db_name/); # make sure it's the same type
-	    my $cache = $self->identifiers()->{$cache_name};
-
-	    
+	    my $cache = $self->identifiers()->{$cache_name};  
 
 	    # Aha, we found it. Store the same reference
 	    if (exists $cache->{$identifier}){
@@ -627,6 +635,7 @@ sub _get_measurements {
 	# once we find the data to figure out if the metadata at the time matched
 	# For now this finds the most recent version of the identifier
 	push(@agg, {'$match' => {'identifier' => {'$in' => \@identifiers}}});
+	push(@agg, {'$project' => {'identifier' => 1, 'start' => 1, '_id' => 0} });
 	push(@agg, {'$group' => {'_id'       => '$identifier', 
 				 'max_start' => {'$max' => '$start'}}});
 	
@@ -644,12 +653,11 @@ sub _get_measurements {
 
 	return if (! $cursor);
 		
-	my @identifiers;
-	my @starts;
+	my @or;
 	my $count = 0;
 	while (my $doc = $cursor->next()){
-	    push(@identifiers, $doc->{'_id'});
-	    push(@starts, $doc->{'max_start'});
+	    push(@or, {"start" => $doc->{'max_start'},
+		       "identifier" => $doc->{"_id"}});
 	}
 
 	log_debug("Got " . scalar(@identifiers) . " back from agg clause");
@@ -659,7 +667,7 @@ sub _get_measurements {
 	foreach my $req_field (@{$self->required_fields->{$db_name}}){
 	    $fields->{$req_field} = 1;
 	}
-	
+
 	# Okay, ready to grab the entries now. This is pretty annoying as a 3rd pass
 	# but we needed more fields than we could grab in the aggregation pipeline
 	undef $cursor;
@@ -667,8 +675,7 @@ sub _get_measurements {
 	    $cursor = $self->mongo
 		->get_database($db_name)
 		->get_collection('measurements')
-		->find({'identifier' => {'$in' => \@identifiers},
-			'start'      => {'$in' => \@starts}})->fields($fields);
+		->find({'$or' => \@or})->fields($fields);
 	}
 	catch {
 	    log_warn("Unable to execute latest measurement entries query with fields for $db_name policy $name: $_");
@@ -681,6 +688,7 @@ sub _get_measurements {
 	while (my $doc = $cursor->next()){
 	    $lookup{$doc->{'identifier'}} = $doc;
 	}
+
     }
 
     # Remember these identifiers so that we can reference them later
@@ -1100,11 +1108,11 @@ sub _generate_work {
 
     my $result;
     try {
-	$result = $collection->update({_id => {'$in' => \@clear_doc_ids}},
-				      {'$unset' => {'updated'       => 1,
-						    'updated_start' => 1,
-						    'updated_end'   => 1}},
-				      {multiple => 1});
+	$result = $collection->update_many({_id => {'$in' => \@clear_doc_ids}},
+					   {'$unset' => {'updated'       => 1,
+							 'updated_start' => 1,
+							 'updated_end'   => 1}}
+					   );
     }
     catch {
 	log_warn("Unable to clear updated flags on data docs: $_");	
@@ -1313,7 +1321,7 @@ sub _release_locks {
 sub _verify_indexes {
     my ( $self, $db_name, $col_name ) = @_;
 
-    my @indexes = $self->mongo()->get_database($db_name)->get_collection($col_name)->get_indexes();
+    my @indexes = $self->mongo()->get_database($db_name)->get_collection($col_name)->indexes()->list()->all();
 
     my $found = 0;
     foreach my $index (@indexes){

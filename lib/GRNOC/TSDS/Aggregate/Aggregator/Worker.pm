@@ -492,7 +492,7 @@ sub _aggregate {
 
     my $result = {};
 
-    my @value_types = keys( %$data );
+    my @value_types = keys( %$data );   
 
     foreach my $value_type ( @value_types ) {
 
@@ -504,8 +504,8 @@ sub _aggregate {
 	my $hist;
 
 	# figure out the smallest/largest possible min/max to use for the histogram
-	my $hist_min = $hist_min_max_mappings->{$key}{'min'};
-	my $hist_max = $hist_min_max_mappings->{$key}{'max'};
+	my $hist_min = $hist_min_max_mappings->{$key . "__" . $value_type}{'min'};
+	my $hist_max = $hist_min_max_mappings->{$key . "__" . $value_type}{'max'};
 
 	my $hist_res = $hist_mappings->{$value_type}{'hist_res'};
 	my $hist_min_width = $hist_mappings->{$value_type}{'hist_min_width'};
