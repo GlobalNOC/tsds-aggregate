@@ -1,3 +1,22 @@
+## GRNOC TSDS Aggregate 1.1.1 -- Thu Nov 16 2017
+
+### Features:
+
+* ISSUE=5657 Fixed issue where suggested min/maxes were not being
+properly taken into account.
+
+* ISSUE=2697 Added dependency on 1.0.1 of Histogram library to improve
+density of non perfectly aligned power of 10 aggregates
+
+
+## GRNOC TSDS Aggregate 1.0.5 -- Tue Sep 5 2017
+
+### Features:
+* ISSUE=3222 Updated to work with 1.0.0+ line of perl MongoDB driver.
+This change is backwards incompatible with earlier versions of the driver, much like
+the driver itself.
+
+
 ## GRNOC TSDS Aggregate 1.0.5 -- Tue Sep 5 2017
 
 ### Features:
