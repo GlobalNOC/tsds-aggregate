@@ -594,7 +594,7 @@ sub _aggregate {
 			# time it showed up in the original histogram
 			while ( my ($bin, $bin_count) = each(%$bins) ){
 			    for (my $i = 0; $i < $bin_count; $i++){
-				push(@values, $min + ($bin * $bin_size));
+				push(@values, $start + ($bin * $bin_size));
 			    }
 			}
 		    
