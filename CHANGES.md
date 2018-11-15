@@ -1,3 +1,12 @@
+## GRNOC TSDS Aggregate 1.2.0 -- Thu Nov 15 2018
+
+### Features:
+
+* ISSUE=8332 Changed the way "dirty" documents are looked for to be a boolean instead
+of a timerange scan, a lot more efficient. This requires working with tsds-services >= 1.6.2
+since a corresponding change was made there.
+
+
 ## GRNOC TSDS Aggregate 1.1.1 -- Thu Nov 16 2017
 
 ### Features:
