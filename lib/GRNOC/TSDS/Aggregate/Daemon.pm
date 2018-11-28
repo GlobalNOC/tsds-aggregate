@@ -990,7 +990,7 @@ sub _generate_work {
 
 	# There's no point aggregating stuff in the future, so if the ceil is
 	# ahead of where we are set it to $now
-	if ($ceil > $self->now){
+	if ($ceil > time()){
 	    log_debug("Ceil of " . localtime($ceil) . " greater than now " . localtime($self->now));
 	    $ceil = int($self->now / $interval_to) * $interval_to;
 	    log_debug("Setting ceil to " . localtime($ceil));
