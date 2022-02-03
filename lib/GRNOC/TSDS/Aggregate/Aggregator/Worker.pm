@@ -80,16 +80,26 @@ sub start {
 
     $self->_set_json( $json );
 
+
     # create websvc object
-    my $websvc = GRNOC::WebService::Client->new( uid => $self->config->get( '/config/worker/tsds/username' ),
-						 passwd => $self->config->get( '/config/worker/tsds/password' ),
-						 realm => $self->config->get( '/config/worker/tsds/realm' ),
-						 service_cache_file => SERVICE_CACHE_FILE,
-						 cookieJar => COOKIES_FILE,
-						 usePost => 1 );
+    my $websvc;
+    if ( not $self->config->get( '/config/worker/tsds/url' ) ) {
+      $websvc = GRNOC::WebService::Client->new( uid => $self->config->get( '/config/worker/tsds/username' ),
+                                                passwd => $self->config->get( '/config/worker/tsds/password' ),
+                                                realm => $self->config->get( '/config/worker/tsds/realm' ),
+                                                service_cache_file => SERVICE_CACHE_FILE,
+                                                cookieJar => COOKIES_FILE,
+                                                usePost => 1 );
 
-    $websvc->set_service_identifier( 'urn:publicid:IDN+grnoc.iu.edu:' . $self->config->get( '/config/worker/tsds/cloud' ) . ':TSDS:1:Query' );
-
+      $websvc->set_service_identifier( 'urn:publicid:IDN+grnoc.iu.edu:' . $self->config->get( '/config/worker/tsds/cloud' ) . ':TSDS:1:Query' );
+    }else{
+      $websvc = GRNOC::WebService::Client->new( uid => $self->config->get( '/config/worker/tsds/username' ),
+                                                passwd => $self->config->get( '/config/worker/tsds/password' ),
+                                                realm => $self->config->get( '/config/worker/tsds/realm' ),
+                                                url => $self->config->get( '/config/worker/tsds/url' ),
+                                                cookieJar => COOKIES_FILE,
+                                                usePost => 1 );
+    }
     $self->_set_websvc( $websvc );
 
     # connect to rabbit queues
