@@ -26,6 +26,7 @@ use constant QUEUE_FETCH_TIMEOUT => 10 * 1000;
 use constant RECONNECT_TIMEOUT => 10;
 use constant PENDING_QUEUE_CHANNEL => 1;
 use constant FINISHED_QUEUE_CHANNEL => 2;
+use constant FAILED_QUEUE_CHANNEL => 3;
 use constant SERVICE_CACHE_FILE => '/etc/grnoc/name-service-cacher/name-service.xml';
 use constant COOKIES_FILE => '/var/lib/grnoc/tsds/aggregate/cookies.dat';
 
@@ -322,7 +323,19 @@ sub _consume_messages {
 
     try {
 
-        $self->_aggregate_messages( $aggregates_to_process ) if ( @$aggregates_to_process > 0 );
+        my $results = $self->_aggregate_messages( $aggregates_to_process ) if ( @$aggregates_to_process > 0 );
+
+        #  push any failed messages to the failed queue
+        my $failed_messages = $results->{'failed_messages'};
+        if (@$failed_messages > 0) {
+            $self->logger->error( "Failed to aggregate " . @$failed_messages . " messages.");
+            $self->rabbit->publish(
+                FAILED_QUEUE_CHANNEL,
+                $self->config->get( '/config/rabbit/failed-queue' );,
+                $self->json->encode( \@failed_messages ),
+                {'exchange' => ''}
+            );
+        }
     }
 
     catch {
@@ -339,9 +352,11 @@ sub _aggregate_messages {
     my ( $self, $messages ) = @_;
 
     my $finished_messages = [];
+    my $results = {'failed_messages' => []};
 
     foreach my $message ( @$messages ) {
 
+        try {
 	my $type = $message->type;
 	my $from = $message->interval_from;
 	my $to = $message->interval_to;
@@ -474,6 +489,13 @@ sub _aggregate_messages {
 		push( @$finished_messages, $aggregated );
 	    }
 	}
+        }
+        catch {
+            # any failed aggregates are not added to 'finished_messages'
+            # and are instead pushed to a failed queue
+            $self->logger->error( "Error aggregating message: $_" );
+            push( @{$results->{'failed_messages'}}, $message );
+        }
     }
 
     my $num = @$finished_messages;
@@ -487,6 +509,8 @@ sub _aggregate_messages {
 
 	$self->rabbit->publish( FINISHED_QUEUE_CHANNEL, $queue, $self->json->encode( \@finished_messages ), {'exchange' => ''} );
     }
+
+    return $results;
 }
 
 sub _aggregate {
@@ -785,6 +809,7 @@ sub _rabbit_connect {
     my $rabbit_port = $self->config->get( '/config/rabbit/port' );
     my $rabbit_pending_queue = $self->config->get( '/config/rabbit/pending-queue' );
     my $rabbit_finished_queue = $self->config->get( '/config/rabbit/finished-queue' );
+    my $rabbit_failed_queue = $self->config->get( '/config/rabbit/failed-queue' );
 
     while ( 1 ) {
 
@@ -807,6 +832,10 @@ sub _rabbit_connect {
 	    # open channel to the finished queue we'll send to
             $rabbit->channel_open( FINISHED_QUEUE_CHANNEL );
             $rabbit->queue_declare( FINISHED_QUEUE_CHANNEL, $rabbit_finished_queue, {'auto_delete' => 0} );
+
+            # open channel to the failed aggregate queue we'll send to
+            $rabbit->channel_open( FAILED_QUEUE_CHANNEL );
+            $rabbit->queue_declare( FAILED_QUEUE_CHANNEL, $rabbit_failed_queue, {'auto_delete' => 0} );
 
             $self->_set_rabbit( $rabbit );
 
