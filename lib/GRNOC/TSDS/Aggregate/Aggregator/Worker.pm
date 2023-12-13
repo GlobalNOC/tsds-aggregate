@@ -331,8 +331,8 @@ sub _consume_messages {
             $self->logger->error( "Failed to aggregate " . @$failed_messages . " messages.");
             $self->rabbit->publish(
                 FAILED_QUEUE_CHANNEL,
-                $self->config->get( '/config/rabbit/failed-queue' );,
-                $self->json->encode( \@failed_messages ),
+                $self->config->get( '/config/rabbit/failed-queue' ),
+                $self->json->encode( \@$failed_messages ),
                 {'exchange' => ''}
             );
         }
@@ -494,7 +494,19 @@ sub _aggregate_messages {
             # any failed aggregates are not added to 'finished_messages'
             # and are instead pushed to a failed queue
             $self->logger->error( "Error aggregating message: $_" );
-            push( @{$results->{'failed_messages'}}, $message );
+
+            # Convert Message object to hash (for encoding to JSON later)
+            my %failed_message = (
+                type          => $message->type,
+                interval_from => $message->interval_from;
+                interval_to   => $message->interval_to;
+                start         => $message->start;
+                end           => $message->end;
+                meta          => $message->meta;
+                values        => $message->values;
+                required_meta => $message->required_meta;
+            );
+            push( @{$results->{'failed_messages'}}, %failed_message );
         }
     }
 
