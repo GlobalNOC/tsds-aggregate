@@ -498,13 +498,13 @@ sub _aggregate_messages {
             # Convert Message object to hash (for encoding to JSON later)
             my %failed_message = (
                 type          => $message->type,
-                interval_from => $message->interval_from;
-                interval_to   => $message->interval_to;
-                start         => $message->start;
-                end           => $message->end;
-                meta          => $message->meta;
-                values        => $message->values;
-                required_meta => $message->required_meta;
+                interval_from => $message->interval_from,
+                interval_to   => $message->interval_to,
+                start         => $message->start,
+                end           => $message->end,
+                meta          => $message->meta,
+                values        => $message->values,
+                required_meta => $message->required_meta
             );
             push( @{$results->{'failed_messages'}}, %failed_message );
         }
