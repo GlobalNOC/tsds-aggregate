@@ -63,6 +63,7 @@
     <port>5672</port>
     <pending-queue>timeseries_pending_aggregate</pending-queue>
     <finished-queue>timeseries_finished_aggregate</finished-queue>
+    <failed-queue>timeseries_failed_aggregate</failed-queue>
   </rabbit>
   
 </config>
