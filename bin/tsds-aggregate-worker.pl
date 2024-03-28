@@ -5,7 +5,9 @@ use warnings;
 
 use lib '/opt/grnoc/venv/grnoc-tsds-aggregate/lib/perl5';
 
-use GRNOC::TSDS::Aggregate::Aggregator;
+use GRNOC::TSDS::Aggregate::Aggregator::Worker;
+use GRNOC::Config;
+use GRNOC::Log;
 
 use Getopt::Long;
 use Data::Dumper;
@@ -19,29 +21,38 @@ use constant DEFAULT_LOGGING_FILE => '/etc/grnoc/tsds/aggregate/logging.conf';
 
 my $config = DEFAULT_CONFIG_FILE;
 my $logging = DEFAULT_LOGGING_FILE;
-my $nofork;
 my $help;
 
 GetOptions( 'config=s' => \$config,
             'logging=s' => \$logging,
-            'nofork' => \$nofork,
             'help|h|?' => \$help );
 
-# did they ask for help?
+sub usage {
+    print "Usage: $0 [--config <file path>] [--logging <file path>]\n";
+    exit( 1 );
+}
+
 usage() if $help;
 
-# start/daemonize writer
-my $aggregator = GRNOC::TSDS::Aggregate::Aggregator->new( config_file => $config,
-                                                          logging_file => $logging,
-                                                          daemonize => !$nofork );
 
-$aggregator->start();
+# create logger object
+my $grnoc_log = GRNOC::Log->new( config => $logging );
+my $logger = GRNOC::Log->get_logger();
+
+# create config object
+my $config_object = GRNOC::Config->new( config_file => $config, force_array => 0 );
+
+# start/daemonize writer
+my $worker = GRNOC::TSDS::Aggregate::Aggregator::Worker->new( config => $config_object,
+								      logger => $logger );
+
+$worker->start();
 
 ### helpers ###
 
 sub usage {
 
-    print "Usage: $0 [--config <file path>] [--logging <file path>] [--nofork]\n";
+    print "Usage: $0 [--config <file path>] [--logging <file path>]\n";
 
     exit( 1 );
 }
