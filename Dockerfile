@@ -18,7 +18,7 @@ RUN dnf makecache
 
 # install venv dependencies 
 RUN dnf install -y \
-    openssl-devel perl-App-cpanminus expat-devel rpm-build
+    openssl-devel perl-App-cpanminus expat-devel rpm-build mod_perl mod_perl-devel gcc
 RUN cpanm Carton
 
 # copy everything in
@@ -26,12 +26,11 @@ COPY . /app
 
 # build & install rpm
 RUN perl Makefile.PL
-RUN make venv
 RUN make rpm
 
 FROM oraclelinux:8
 
-COPY --from=0 /root/rpmbuild/RPMS/x86_64//grnoc-tsds-aggregate*.rpm /root/
+COPY --from=0 /root/rpmbuild/RPMS/x86_64/grnoc-tsds-aggregate*x86_64.rpm /root/
 
 RUN dnf install -y \
     https://build.grnoc.iu.edu/repo/rhel/8/x86_64/globalnoc-release-8-1.el8.noarch.rpm \

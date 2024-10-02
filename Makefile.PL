@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 
 sub MY::postamble { <<'END'; }
 venv:
-	carton install --deployment --path=venv
+	carton install
 
 rpm: venv manifest dist
 	rpmbuild -ta grnoc-tsds-aggregate-$(VERSION).tar.gz

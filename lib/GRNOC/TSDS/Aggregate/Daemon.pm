@@ -7,8 +7,8 @@ use Moo;
 use Types::Standard qw( Str Bool );
 use Try::Tiny;
 
-use GRNOC::Config;
 use GRNOC::Log;
+use GRNOC::TSDS::Aggregate::Config;
 
 use Proc::Daemon;
 use Parallel::ForkManager;
@@ -31,7 +31,7 @@ use Time::HiRes qw(tv_interval gettimeofday);
 
 has config_file => ( is       => 'ro',		     
                      isa      => Str,
-                     required => 1 );
+                     required => 0 );
 
 has daemonize => ( is       => 'ro',
                    isa      => Bool,
@@ -95,30 +95,33 @@ has locker => ( is => 'rwp' );
 has locks => ( is => 'rwp',
 	       default => sub { [] } );
 
-has config => ( is => 'rwp' );
+has config => ( is => 'rw' );
 
 ### public methods ###
 
 sub BUILD {
-
     my ( $self ) = @_;
 
-    # create and store config object
-    my $config = GRNOC::Config->new( config_file => $self->config_file,
-                                     force_array => 0 );
+	if (!$self->config && !$self->config_file) {
+		die "Argument 'config' or 'config_file' is required.";
+	}
+	if ($self->config_file) {
+		my $config = new GRNOC::TSDS::Aggregate::Config(
+			config_file => $self->config_file
+		);
+		$self->config($config);
+	}  
 
-    $self->_set_config( $config );   
-
-    my $chunk_size = $config->get('/config/master/num_concurrent_measurements');
+    my $chunk_size = $self->config->tsds_aggregate_concurrent_measurements;
     $self->chunk_size($chunk_size) if ($chunk_size);
 
-    my $message_size = $config->get('/config/master/num_messages');
+    my $message_size = $self->config->tsds_aggregate_message_size;
     $self->message_size($message_size) if ($message_size);
 
-    my $lock_timeout = $config->get('/config/master/lock_timeout');
+    my $lock_timeout = $self->config->tsds_aggregate_lock_timeout;
     $self->lock_timeout($lock_timeout) if ($lock_timeout);
 
-    my $max_docs_chunk = $config->get('/config/master/max_docs_per_block');
+    my $max_docs_chunk = $self->config->tsds_aggregate_max_docs_per_block;
     $self->max_docs_chunk($max_docs_chunk) if ($max_docs_chunk);
 
     log_info("Starting with chunk size = " . $self->chunk_size() . ", message size = " . $self->message_size() . ", lock timeout = " . $self->lock_timeout() . ", max docs chunk = " . $self->max_docs_chunk());
@@ -154,7 +157,7 @@ sub start {
 
         log_debug( 'Daemonizing.' );
 
-        my $daemon = Proc::Daemon->new( pid_file => $self->config->get( '/config/master/pid-file' ) );
+        my $daemon = Proc::Daemon->new(pid_file => $self->config->tsds_aggregate_daemon_pid_file);
 
         my $pid = $daemon->Init();
 
@@ -1204,21 +1207,30 @@ sub _connect {
 sub _mongo_connect {
     my ( $self ) = @_;
 
-    my $mongo_host = $self->config->get( '/config/master/mongo/host' );
-    my $mongo_port = $self->config->get( '/config/master/mongo/port' );
-    my $user       = $self->config->get( '/config/master/mongo/username' );
-    my $pass       = $self->config->get( '/config/master/mongo/password' );
+	my $mongo_uri  = $self->config->mongodb_uri;
+    my $mongo_host = $self->config->mongodb_host;
+    my $mongo_port = $self->config->mongodb_port;
+    my $user       = $self->config->mongodb_user;
+    my $pass       = $self->config->mongodb_pass;
 
-    log_debug( "Connecting to MongoDB as $user:$pass on $mongo_host:$mongo_port." );
 
     my $mongo;
     try {
-        $mongo = MongoDB::MongoClient->new(
-            host => "$mongo_host:$mongo_port",
-            query_timeout => -1,
-            username => $user,
-            password => $pass
+        if ($mongo_uri) {
+            log_debug("Connecting to MongoDB with URI.");
+            $mongo = MongoDB::MongoClient->new(
+                host => $mongo_uri,
+                query_timeout => -1
             );
+        } else {
+            log_debug("Connecting to MongoDB as $user:$pass on $mongo_host:$mongo_port.");
+            $mongo = MongoDB::MongoClient->new(
+                host => "$mongo_host:$mongo_port",
+                query_timeout => -1,
+                username => $user,
+                password => $pass
+            );
+        }
     }
     catch {
         log_warn("Could not connect to Mongo: $_");
@@ -1237,13 +1249,19 @@ sub _rabbit_connect {
 
     my $rabbit = Net::AMQP::RabbitMQ->new();   
 
-    my $rabbit_host = $self->config->get( '/config/rabbit/host' );
-    my $rabbit_port = $self->config->get( '/config/rabbit/port' );
-    my $rabbit_queue = $self->config->get( '/config/rabbit/pending-queue' );
+    my $rabbit_user = $self->config->rabbitmq_user;
+    my $rabbit_pass = $self->config->rabbitmq_pass;
+    my $rabbit_host = $self->config->rabbitmq_host;
+    my $rabbit_port = $self->config->rabbitmq_port;
+    my $rabbit_queue = $self->config->rabbitmq_queue;
 
     log_debug("Connecting to RabbitMQ on $rabbit_host:$rabbit_port with queue $rabbit_queue");
 
     my $rabbit_args = {'port' => $rabbit_port};
+	if ($rabbit_user) {
+		$rabbit_args->{'user'} = $rabbit_user;
+		$rabbit_args->{'password'} = $rabbit_pass;
+	}
 
     my $success = 0;
     try {
@@ -1269,8 +1287,8 @@ sub _rabbit_connect {
 sub _redis_connect {
     my ( $self ) = @_;
 
-    my $redis_host = $self->config->get( '/config/master/redis/host' );
-    my $redis_port = $self->config->get( '/config/master/redis/port' );
+    my $redis_host = $self->config->redis_host;
+    my $redis_port = $self->config->redis_port;
 
     log_debug("Connecting to redis on $redis_host:$redis_port");
 
