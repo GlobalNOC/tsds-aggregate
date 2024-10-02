@@ -84,20 +84,20 @@ sub start {
 
     # create websvc object
     my $websvc;
-    if ( not $self->config->get( '/config/worker/tsds/url' ) ) {
-      $websvc = GRNOC::WebService::Client->new( uid => $self->config->get( '/config/worker/tsds/username' ),
-                                                passwd => $self->config->get( '/config/worker/tsds/password' ),
-                                                realm => $self->config->get( '/config/worker/tsds/realm' ),
+    if (not $self->config->tsds_aggregate_tsds_url) {
+      $websvc = GRNOC::WebService::Client->new( uid => $self->config->tsds_aggregate_tsds_user,
+                                                passwd => $self->config->tsds_aggregate_tsds_pass,
+                                                realm => $self->config->tsds_aggregate_tsds_realm,
                                                 service_cache_file => SERVICE_CACHE_FILE,
                                                 cookieJar => COOKIES_FILE,
                                                 usePost => 1 );
 
-      $websvc->set_service_identifier( 'urn:publicid:IDN+grnoc.iu.edu:' . $self->config->get( '/config/worker/tsds/cloud' ) . ':TSDS:1:Query' );
-    }else{
-      $websvc = GRNOC::WebService::Client->new( uid => $self->config->get( '/config/worker/tsds/username' ),
-                                                passwd => $self->config->get( '/config/worker/tsds/password' ),
-                                                realm => $self->config->get( '/config/worker/tsds/realm' ),
-                                                url => $self->config->get( '/config/worker/tsds/url' ),
+      $websvc->set_service_identifier( 'urn:publicid:IDN+grnoc.iu.edu:' . $self->config->tsds_aggregate_tsds_cloud . ':TSDS:1:Query' );
+    } else {
+      $websvc = GRNOC::WebService::Client->new( uid => $self->config->tsds_aggregate_tsds_user,
+                                                passwd => $self->config->tsds_aggregate_tsds_pass,
+                                                realm => $self->config->tsds_aggregate_tsds_realm,
+                                                url => $self->config->tsds_aggregate_tsds_url,
                                                 cookieJar => COOKIES_FILE,
                                                 usePost => 1 );
     }
@@ -331,7 +331,7 @@ sub _consume_messages {
             $self->logger->error( "Failed to aggregate " . @$failed_messages . " messages.");
             $self->rabbit->publish(
                 FAILED_QUEUE_CHANNEL,
-                $self->config->get( '/config/rabbit/failed-queue' ),
+                $self->config->rabbitmq_failed_queue,
                 $self->json->encode( \@$failed_messages ),
                 {'exchange' => ''}
             );
@@ -515,7 +515,7 @@ sub _aggregate_messages {
     # send a max of 100 messages at a time to rabbit
     my $it = natatime( 100, @$finished_messages );
 
-    my $queue = $self->config->get( '/config/rabbit/finished-queue' );
+    my $queue = $self->config->rabbitmq_finished_queue;
 
     while ( my @finished_messages = $it->() ) {
 
@@ -814,14 +814,13 @@ sub _get_where_clause {
 }
 
 sub _rabbit_connect {
-
     my ( $self ) = @_;
 
-    my $rabbit_host = $self->config->get( '/config/rabbit/host' );
-    my $rabbit_port = $self->config->get( '/config/rabbit/port' );
-    my $rabbit_pending_queue = $self->config->get( '/config/rabbit/pending-queue' );
-    my $rabbit_finished_queue = $self->config->get( '/config/rabbit/finished-queue' );
-    my $rabbit_failed_queue = $self->config->get( '/config/rabbit/failed-queue' );
+    my $rabbit_host = $self->config->rabbitmq_host;
+    my $rabbit_port = $self->config->rabbitmq_port;
+    my $rabbit_pending_queue = $self->config->rabbitmq_pending_queue;
+    my $rabbit_finished_queue = $self->config->rabbitmq_finished_queue;
+    my $rabbit_failed_queue = $self->config->rabbitmq_failed_queue;
 
     while ( 1 ) {
 

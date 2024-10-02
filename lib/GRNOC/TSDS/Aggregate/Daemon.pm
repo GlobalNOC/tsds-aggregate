@@ -1253,7 +1253,7 @@ sub _rabbit_connect {
     my $rabbit_pass = $self->config->rabbitmq_pass;
     my $rabbit_host = $self->config->rabbitmq_host;
     my $rabbit_port = $self->config->rabbitmq_port;
-    my $rabbit_queue = $self->config->rabbitmq_queue;
+    my $rabbit_queue = $self->config->rabbitmq_pending_queue;
 
     log_debug("Connecting to RabbitMQ on $rabbit_host:$rabbit_port with queue $rabbit_queue");
 

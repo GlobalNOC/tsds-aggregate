@@ -136,6 +136,102 @@ sub tsds_aggregate_daemon_pid_file {
 }
 
 
+=head2 tsds_aggregate_worker_pid_file
+
+Where should we write the aggregator worker pid file.
+
+=cut
+sub tsds_aggregate_worker_pid_file {
+    my $self = shift;
+
+    if ($ENV{TSDS_AGGREGATE_WORKER_PID_FILE}) {
+        return $ENV{TSDS_AGGREGATE_WORKER_PID_FILE};
+    } else {
+        return $self->config->get('/config/worker/pid-file');
+    }
+}
+
+
+=head2 tsds_aggregate_tsds_user
+
+...
+
+=cut
+sub tsds_aggregate_tsds_user {
+    my $self = shift;
+
+    if ($ENV{TSDS_AGGREGATE_TSDS_USER}) {
+        return $ENV{TSDS_AGGREGATE_TSDS_USER};
+    } else {
+        return $self->config->get('/config/worker/tsds/username');
+    }
+}
+
+
+=head2 tsds_aggregate_tsds_pass
+
+...
+
+=cut
+sub tsds_aggregate_tsds_pass {
+    my $self = shift;
+
+    if ($ENV{TSDS_AGGREGATE_TSDS_PASS}) {
+        return $ENV{TSDS_AGGREGATE_TSDS_PASS};
+    } else {
+        return $self->config->get('/config/worker/tsds/password');
+    }
+}
+
+
+=head2 tsds_aggregate_tsds_realm
+
+...
+
+=cut
+sub tsds_aggregate_tsds_realm {
+    my $self = shift;
+
+    if ($ENV{TSDS_AGGREGATE_TSDS_REALM}) {
+        return $ENV{TSDS_AGGREGATE_TSDS_REALM};
+    } else {
+        return $self->config->get('/config/worker/tsds/realm');
+    }
+}
+
+
+=head2 tsds_aggregate_tsds_url
+
+...
+
+=cut
+sub tsds_aggregate_tsds_url {
+    my $self = shift;
+
+    if ($ENV{TSDS_AGGREGATE_TSDS_URL}) {
+        return $ENV{TSDS_AGGREGATE_TSDS_URL};
+    } else {
+        return $self->config->get('/config/worker/tsds/url');
+    }
+}
+
+
+=head2 tsds_aggregate_tsds_cloud
+
+...
+
+=cut
+sub tsds_aggregate_tsds_cloud {
+    my $self = shift;
+
+    if ($ENV{TSDS_AGGREGATE_TSDS_CLOUD}) {
+        return $ENV{TSDS_AGGREGATE_TSDS_CLOUD};
+    } else {
+        return $self->config->get('/config/worker/tsds/cloud');
+    }
+}
+
+
 sub mongodb_uri {
     my $self = shift;
     return $ENV{MONGODB_URI};
@@ -220,13 +316,35 @@ sub rabbitmq_port {
 }
 
 
-sub rabbitmq_queue {
+sub rabbitmq_pending_queue {
     my $self = shift;
 
     if (!defined $self->config) {
-        return $ENV{RABBITMQ_QUEUE};
+        return $ENV{RABBITMQ_PENDING_QUEUE};
     } else {
         return $self->config->get('/config/rabbit/pending-queue');
+    }
+}
+
+
+sub rabbitmq_failed_queue {
+    my $self = shift;
+
+    if (!defined $self->config) {
+        return $ENV{RABBITMQ_FAILED_QUEUE};
+    } else {
+        return $self->config->get('/config/rabbit/failed-queue');
+    }
+}
+
+
+sub rabbitmq_finished_queue {
+    my $self = shift;
+
+    if (!defined $self->config) {
+        return $ENV{RABBITMQ_FINISHED_QUEUE};
+    } else {
+        return $self->config->get('/config/rabbit/finished-queue');
     }
 }
 

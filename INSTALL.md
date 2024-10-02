@@ -28,6 +28,12 @@ Installing these packages is just a yum command away. Nothing will automatically
 - `TSDS_AGGREGATE_LOCK_TIMEOUT`: How long in seconds to hold redis locks (unlikely you should have to change this).
 - `TSDS_AGGREGATE_MAX_DOCS_PER_BLOCK`: How many documents can be read in a single block. This should be greater than the num_concurrent_measurements to avoid extra looping. A single ->find from the data collections will retrieve this many at most, avoiding timeouts on very large requests if a lot of documents have been dirtied.
 - `TSDS_AGGREGATE_DAEMON_PID_FILE`: Where should we write the aggregator master pid file.
+- `TSDS_AGGREGATE_WORKER_PID_FILE`: Where should we write the aggregator worker pid file.
+- `TSDS_AGGREGATE_TSDS_USER`: TSDS web service login details.
+- `TSDS_AGGREGATE_TSDS_PASS`: TSDS web service login details.
+- `TSDS_AGGREGATE_TSDS_REALM`: TSDS web service login details.
+- `TSDS_AGGREGATE_TSDS_URL`: TSDS web service login details.
+- `TSDS_AGGREGATE_TSDS_CLOUD`: TSDS web service login details.
 - `MONGODB_URI`: MongoDB URI string. Prefered over other MongoDB options.
 - `MONGODB_USER`: MongoDB username.
 - `MONGODB_PASS`: MongoDB password.
@@ -37,7 +43,9 @@ Installing these packages is just a yum command away. Nothing will automatically
 - `RABBITMQ_PASS`: RabbitMQ password.
 - `RABBITMQ_HOST`: RabbitMQ host.
 - `RABBITMQ_PORT`: RabbitMQ port.
-- `RABBITMQ_QUEUE`: RabbitMQ queue name.
+- `RABBITMQ_PENDING_QUEUE`: RabbitMQ queue name.
+- `RABBITMQ_FAILED_QUEUE`: RabbitMQ queue name.
+- `RABBITMQ_FINISHED_QUEUE`: RabbitMQ queue name.
 - `REDIS_HOST`: Redis host.
 - `REDIS_PORT`: Redis port.
 

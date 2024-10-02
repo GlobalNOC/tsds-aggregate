@@ -971,6 +971,30 @@ DISTRIBUTIONS
       POSIX 0
       strict 0
       warnings 0
+  HTML-Form-6.11
+    pathname: S/SI/SIMBABQUE/HTML-Form-6.11.tar.gz
+    provides:
+      HTML::Form 6.11
+      HTML::Form::FileInput 6.11
+      HTML::Form::IgnoreInput 6.11
+      HTML::Form::ImageInput 6.11
+      HTML::Form::Input 6.11
+      HTML::Form::KeygenInput 6.11
+      HTML::Form::ListInput 6.11
+      HTML::Form::SubmitInput 6.11
+      HTML::Form::TextInput 6.11
+    requirements:
+      Carp 0
+      Encode 2
+      ExtUtils::MakeMaker 0
+      HTML::TokeParser 0
+      HTTP::Request 6
+      HTTP::Request::Common 6.03
+      Test::More 0.96
+      URI 1.10
+      parent 0
+      perl 5.008001
+      strict 0
   HTML-Parser-3.71
     pathname: G/GA/GAAS/HTML-Parser-3.71.tar.gz
     provides:
@@ -2453,19 +2477,6 @@ DISTRIBUTIONS
       Tie::IxHash 1.22
     requirements:
       perl 5.003
-  Time-HiRes-1.9758
-    pathname: J/JH/JHI/Time-HiRes-1.9758.tar.gz
-    provides:
-      Time::HiRes 1.9758
-    requirements:
-      Carp 0
-      Config 0
-      Exporter 0
-      ExtUtils::MakeMaker 0
-      Test::More 0
-      XSLoader 0
-      perl 5.006
-      strict 0
   Time-Local-1.35
     pathname: D/DR/DROLSKY/Time-Local-1.35.tar.gz
     provides:
