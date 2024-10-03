@@ -8,6 +8,7 @@ Both RPM and Docker Images are build using the following commands:
 ```
 VERSION=1.2.2
 rm -f *.rpm
+rm -rf local/ vendor/ blib/
 docker build -t "containers.github.grnoc.iu.edu/ndca/tsds-aggregate:$VERSION" .
 docker run --entrypoint /bin/sleep --name tsds-aggregate-rpm --rm -d "containers.github.grnoc.iu.edu/ndca/tsds-aggregate:$VERSION" 3
 docker cp tsds-aggregate-rpm:/root/grnoc-tsds-aggregate-$VERSION-1.el8.x86_64.rpm .

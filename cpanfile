@@ -27,3 +27,4 @@ requires 'XML::XPath', '== 1.48';
 requires 'XML::Writer', '== 0.623';
 requires 'Authen::SCRAM::Client', '== 0.011';
 requires 'HTML::Form', '== 6.11';
+requires 'CGI', '== 4.66';

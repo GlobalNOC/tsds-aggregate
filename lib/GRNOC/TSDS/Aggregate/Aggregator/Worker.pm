@@ -816,6 +816,8 @@ sub _get_where_clause {
 sub _rabbit_connect {
     my ( $self ) = @_;
 
+    my $rabbit_user = $self->config->rabbitmq_user;
+    my $rabbit_pass = $self->config->rabbitmq_pass;
     my $rabbit_host = $self->config->rabbitmq_host;
     my $rabbit_port = $self->config->rabbitmq_port;
     my $rabbit_pending_queue = $self->config->rabbitmq_pending_queue;
@@ -832,7 +834,12 @@ sub _rabbit_connect {
 
             my $rabbit = Net::AMQP::RabbitMQ->new();
 
-            $rabbit->connect( $rabbit_host, {'port' => $rabbit_port} );
+            my $rabbit_args = {'port' => $rabbit_port};
+            if ($rabbit_user) {
+                $rabbit_args->{'user'} = $rabbit_user;
+                $rabbit_args->{'password'} = $rabbit_pass;
+            }
+            $rabbit->connect($rabbit_host, $rabbit_args);
 
 	    # open channel to the pending queue we'll read from
             $rabbit->channel_open( PENDING_QUEUE_CHANNEL );
