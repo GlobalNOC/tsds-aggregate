@@ -840,19 +840,64 @@ sub _rabbit_connect {
             }
             $rabbit->connect($rabbit_host, $rabbit_args);
 
-	    # open channel to the pending queue we'll read from
-            $rabbit->channel_open( PENDING_QUEUE_CHANNEL );
-            $rabbit->queue_declare( PENDING_QUEUE_CHANNEL, $rabbit_pending_queue, {'auto_delete' => 0} );
-            $rabbit->basic_qos( PENDING_QUEUE_CHANNEL, { prefetch_count => QUEUE_PREFETCH_COUNT } );
-            $rabbit->consume( PENDING_QUEUE_CHANNEL, $rabbit_pending_queue, {'no_ack' => 0} );
+            # open channel to the pending queue we'll read from
+            $rabbit->channel_open(PENDING_QUEUE_CHANNEL);
+            $rabbit->exchange_declare(
+                PENDING_QUEUE_CHANNEL,
+                "tsds",
+                { exchange_type => "direct" }
+            );
+            $rabbit->queue_declare(
+                PENDING_QUEUE_CHANNEL,
+                $rabbit_pending_queue,
+                { auto_delete => 0, durable => 1 },
+                { "x-queue-type" => "quorum" }
+            );
+            $rabbit->basic_qos(
+                PENDING_QUEUE_CHANNEL,
+                { prefetch_count => QUEUE_PREFETCH_COUNT }
+            );
+            $self->rabbit->queue_bind(
+                PENDING_QUEUE_CHANNEL,
+                $rabbit_pending_queue, # queue name
+                "tsds",                # exchange name
+                $rabbit_pending_queue  # routing key
+            );
+            $rabbit->consume(
+                PENDING_QUEUE_CHANNEL,
+                $rabbit_pending_queue,
+                { no_ack => 0 }
+            );
 
-	    # open channel to the finished queue we'll send to
-            $rabbit->channel_open( FINISHED_QUEUE_CHANNEL );
-            $rabbit->queue_declare( FINISHED_QUEUE_CHANNEL, $rabbit_finished_queue, {'auto_delete' => 0} );
+            # open channel to the finished queue we'll send to
+            $rabbit->channel_open(FINISHED_QUEUE_CHANNEL);
+            $rabbit->queue_declare(
+                FINISHED_QUEUE_CHANNEL,
+                $rabbit_finished_queue,
+                { auto_delete => 0, durable => 1 },
+                { "x-queue-type" => "quorum" }
+            );
+            $self->rabbit->queue_bind(
+                FINISHED_QUEUE_CHANNEL,
+                $rabbit_finished_queue, # queue name
+                "tsds",                 # exchange name
+                $rabbit_finished_queue  # routing key
+            );
 
             # open channel to the failed aggregate queue we'll send to
-            $rabbit->channel_open( FAILED_QUEUE_CHANNEL );
-            $rabbit->queue_declare( FAILED_QUEUE_CHANNEL, $rabbit_failed_queue, {'auto_delete' => 0} );
+            $rabbit->channel_open(FAILED_QUEUE_CHANNEL);
+            $rabbit->queue_declare(
+                FAILED_QUEUE_CHANNEL,
+                $rabbit_failed_queue,
+                { auto_delete => 0, durable => 1 },
+                { "x-queue-type" => "quorum" }
+            );
+            $self->rabbit->queue_bind(
+                FAILED_QUEUE_CHANNEL,
+                $rabbit_failed_queue, # queue name
+                "tsds",               # exchange name
+                $rabbit_failed_queue  # routing key
+            );
 
             $self->_set_rabbit( $rabbit );
 

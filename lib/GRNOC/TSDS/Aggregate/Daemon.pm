@@ -1265,10 +1265,21 @@ sub _rabbit_connect {
 
     my $success = 0;
     try {
-        $rabbit->connect( $rabbit_host, $rabbit_args );
-        $rabbit->channel_open( 1 );
-        $rabbit->queue_declare( 1, $rabbit_queue, {'auto_delete' => 0} );
-	$success = 1;
+        $rabbit->connect($rabbit_host, $rabbit_args);
+        $rabbit->channel_open(1);
+        $rabbit->queue_declare(
+            1,
+            $rabbit_queue,
+            { auto_delete => 0, durable => 1 },
+			{ "x-queue-type" => "quorum" }
+        );
+        $rabbit->queue_bind(
+            1,
+            $rabbit_queue, # queue name
+            "tsds",        # exchange name
+            $rabbit_queue  # routing key
+        );
+        $success = 1;
     }
     catch {
         log_warn("Unable to connect to RabbitMQ: $_");
