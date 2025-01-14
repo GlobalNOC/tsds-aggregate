@@ -1095,7 +1095,7 @@ sub _generate_work {
 
     my $duration = tv_interval($start, [gettimeofday]);
 
-    log_debug("All work messages sent to rabbit in $duration seconds");
+    log_info("All work messages sent to rabbit in $duration seconds");
 
     $start = [gettimeofday];
 

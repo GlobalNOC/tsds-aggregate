@@ -281,8 +281,7 @@ sub _consume_messages {
 
         # make sure message is an object/hash (ref)
         if ( ref( $message ) ne 'HASH' ) {
-
-            $self->logger->error( "Messages must be an object/hash of data, skipping." );
+            $self->logger->error("Messages must be an object/hash of data skipping: " . Dumper($message));
             next;
         }
 
@@ -292,8 +291,8 @@ sub _consume_messages {
         my $start = $message->{'start'};
         my $end = $message->{'end'};
         my $meta = $message->{'meta'};
-	my $values = $message->{'values'};
-	my $required_meta = $message->{'required_meta'};
+        my $values = $message->{'values'};
+        my $required_meta = $message->{'required_meta'};
 
 	my $aggregate_message;
 
