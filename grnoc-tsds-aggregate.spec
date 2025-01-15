@@ -5,7 +5,7 @@ AutoReqProv: no # Keep rpmbuild from trying to figure out Perl on its own
 
 Summary: GRNOC TSDS Aggregate
 Name: grnoc-tsds-aggregate
-Version: 1.2.2
+Version: 1.2.3
 Release: 1%{?dist}
 License: GRNOC
 Group: Measurement
