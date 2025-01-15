@@ -84,20 +84,20 @@ sub start {
 
     # create websvc object
     my $websvc;
-    if ( not $self->config->get( '/config/worker/tsds/url' ) ) {
-      $websvc = GRNOC::WebService::Client->new( uid => $self->config->get( '/config/worker/tsds/username' ),
-                                                passwd => $self->config->get( '/config/worker/tsds/password' ),
-                                                realm => $self->config->get( '/config/worker/tsds/realm' ),
+    if (not $self->config->tsds_aggregate_tsds_url) {
+      $websvc = GRNOC::WebService::Client->new( uid => $self->config->tsds_aggregate_tsds_user,
+                                                passwd => $self->config->tsds_aggregate_tsds_pass,
+                                                realm => $self->config->tsds_aggregate_tsds_realm,
                                                 service_cache_file => SERVICE_CACHE_FILE,
                                                 cookieJar => COOKIES_FILE,
                                                 usePost => 1 );
 
-      $websvc->set_service_identifier( 'urn:publicid:IDN+grnoc.iu.edu:' . $self->config->get( '/config/worker/tsds/cloud' ) . ':TSDS:1:Query' );
-    }else{
-      $websvc = GRNOC::WebService::Client->new( uid => $self->config->get( '/config/worker/tsds/username' ),
-                                                passwd => $self->config->get( '/config/worker/tsds/password' ),
-                                                realm => $self->config->get( '/config/worker/tsds/realm' ),
-                                                url => $self->config->get( '/config/worker/tsds/url' ),
+      $websvc->set_service_identifier( 'urn:publicid:IDN+grnoc.iu.edu:' . $self->config->tsds_aggregate_tsds_cloud . ':TSDS:1:Query' );
+    } else {
+      $websvc = GRNOC::WebService::Client->new( uid => $self->config->tsds_aggregate_tsds_user,
+                                                passwd => $self->config->tsds_aggregate_tsds_pass,
+                                                realm => $self->config->tsds_aggregate_tsds_realm,
+                                                url => $self->config->tsds_aggregate_tsds_url,
                                                 cookieJar => COOKIES_FILE,
                                                 usePost => 1 );
     }
@@ -281,8 +281,7 @@ sub _consume_messages {
 
         # make sure message is an object/hash (ref)
         if ( ref( $message ) ne 'HASH' ) {
-
-            $self->logger->error( "Messages must be an object/hash of data, skipping." );
+            $self->logger->error("Messages must be an object/hash of data skipping: " . Dumper($message));
             next;
         }
 
@@ -292,8 +291,8 @@ sub _consume_messages {
         my $start = $message->{'start'};
         my $end = $message->{'end'};
         my $meta = $message->{'meta'};
-	my $values = $message->{'values'};
-	my $required_meta = $message->{'required_meta'};
+        my $values = $message->{'values'};
+        my $required_meta = $message->{'required_meta'};
 
 	my $aggregate_message;
 
@@ -331,7 +330,7 @@ sub _consume_messages {
             $self->logger->error( "Failed to aggregate " . @$failed_messages . " messages.");
             $self->rabbit->publish(
                 FAILED_QUEUE_CHANNEL,
-                $self->config->get( '/config/rabbit/failed-queue' ),
+                $self->config->rabbitmq_failed_queue,
                 $self->json->encode( \@$failed_messages ),
                 {'exchange' => ''}
             );
@@ -515,7 +514,7 @@ sub _aggregate_messages {
     # send a max of 100 messages at a time to rabbit
     my $it = natatime( 100, @$finished_messages );
 
-    my $queue = $self->config->get( '/config/rabbit/finished-queue' );
+    my $queue = $self->config->rabbitmq_finished_queue;
 
     while ( my @finished_messages = $it->() ) {
 
@@ -814,14 +813,15 @@ sub _get_where_clause {
 }
 
 sub _rabbit_connect {
-
     my ( $self ) = @_;
 
-    my $rabbit_host = $self->config->get( '/config/rabbit/host' );
-    my $rabbit_port = $self->config->get( '/config/rabbit/port' );
-    my $rabbit_pending_queue = $self->config->get( '/config/rabbit/pending-queue' );
-    my $rabbit_finished_queue = $self->config->get( '/config/rabbit/finished-queue' );
-    my $rabbit_failed_queue = $self->config->get( '/config/rabbit/failed-queue' );
+    my $rabbit_user = $self->config->rabbitmq_user;
+    my $rabbit_pass = $self->config->rabbitmq_pass;
+    my $rabbit_host = $self->config->rabbitmq_host;
+    my $rabbit_port = $self->config->rabbitmq_port;
+    my $rabbit_pending_queue = $self->config->rabbitmq_pending_queue;
+    my $rabbit_finished_queue = $self->config->rabbitmq_finished_queue;
+    my $rabbit_failed_queue = $self->config->rabbitmq_failed_queue;
 
     while ( 1 ) {
 
@@ -833,21 +833,71 @@ sub _rabbit_connect {
 
             my $rabbit = Net::AMQP::RabbitMQ->new();
 
-            $rabbit->connect( $rabbit_host, {'port' => $rabbit_port} );
+            my $rabbit_args = {'port' => $rabbit_port};
+            if ($rabbit_user) {
+                $rabbit_args->{'user'} = $rabbit_user;
+                $rabbit_args->{'password'} = $rabbit_pass;
+            }
+            $rabbit->connect($rabbit_host, $rabbit_args);
 
-	    # open channel to the pending queue we'll read from
-            $rabbit->channel_open( PENDING_QUEUE_CHANNEL );
-            $rabbit->queue_declare( PENDING_QUEUE_CHANNEL, $rabbit_pending_queue, {'auto_delete' => 0} );
-            $rabbit->basic_qos( PENDING_QUEUE_CHANNEL, { prefetch_count => QUEUE_PREFETCH_COUNT } );
-            $rabbit->consume( PENDING_QUEUE_CHANNEL, $rabbit_pending_queue, {'no_ack' => 0} );
+            # open channel to the pending queue we'll read from
+            $rabbit->channel_open(PENDING_QUEUE_CHANNEL);
+            $rabbit->exchange_declare(
+                PENDING_QUEUE_CHANNEL,
+                "tsds",
+                { exchange_type => "direct" }
+            );
+            $rabbit->queue_declare(
+                PENDING_QUEUE_CHANNEL,
+                $rabbit_pending_queue,
+                { auto_delete => 0, durable => 1 },
+                { "x-queue-type" => "quorum" }
+            );
+            $rabbit->basic_qos(
+                PENDING_QUEUE_CHANNEL,
+                { prefetch_count => QUEUE_PREFETCH_COUNT }
+            );
+            $rabbit->queue_bind(
+                PENDING_QUEUE_CHANNEL,
+                $rabbit_pending_queue, # queue name
+                "tsds",                # exchange name
+                $rabbit_pending_queue  # routing key
+            );
+            $rabbit->consume(
+                PENDING_QUEUE_CHANNEL,
+                $rabbit_pending_queue,
+                { no_ack => 0 }
+            );
 
-	    # open channel to the finished queue we'll send to
-            $rabbit->channel_open( FINISHED_QUEUE_CHANNEL );
-            $rabbit->queue_declare( FINISHED_QUEUE_CHANNEL, $rabbit_finished_queue, {'auto_delete' => 0} );
+            # open channel to the finished queue we'll send to
+            $rabbit->channel_open(FINISHED_QUEUE_CHANNEL);
+            $rabbit->queue_declare(
+                FINISHED_QUEUE_CHANNEL,
+                $rabbit_finished_queue,
+                { auto_delete => 0, durable => 1 },
+                { "x-queue-type" => "quorum" }
+            );
+            $rabbit->queue_bind(
+                FINISHED_QUEUE_CHANNEL,
+                $rabbit_finished_queue, # queue name
+                "tsds",                 # exchange name
+                $rabbit_finished_queue  # routing key
+            );
 
             # open channel to the failed aggregate queue we'll send to
-            $rabbit->channel_open( FAILED_QUEUE_CHANNEL );
-            $rabbit->queue_declare( FAILED_QUEUE_CHANNEL, $rabbit_failed_queue, {'auto_delete' => 0} );
+            $rabbit->channel_open(FAILED_QUEUE_CHANNEL);
+            $rabbit->queue_declare(
+                FAILED_QUEUE_CHANNEL,
+                $rabbit_failed_queue,
+                { auto_delete => 0, durable => 1 },
+                { "x-queue-type" => "quorum" }
+            );
+            $rabbit->queue_bind(
+                FAILED_QUEUE_CHANNEL,
+                $rabbit_failed_queue, # queue name
+                "tsds",               # exchange name
+                $rabbit_failed_queue  # routing key
+            );
 
             $self->_set_rabbit( $rabbit );
 

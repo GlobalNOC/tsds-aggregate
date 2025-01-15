@@ -3,6 +3,9 @@
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-aggregate/lib/perl5';
+
+use GRNOC::TSDS::Aggregate::Config;
 use GRNOC::TSDS::Aggregate::Daemon;
 use JSON::XS;
 
@@ -18,7 +21,7 @@ use constant DEFAULT_LOGGING_FILE => '/etc/grnoc/tsds/aggregate/logging.conf';
 ### command line options ###
 
 my $help;
-my $config = DEFAULT_CONFIG_FILE;
+my $config = '';
 my $logging = DEFAULT_LOGGING_FILE;
 my $nofork;
 my $database;
@@ -28,19 +31,21 @@ my $policy;
 my $query;
 
 # parse options from command line
-GetOptions( "help|h|?"    => \$help,
-            "config=s"    => \$config,
-            "logging=s"   => \$logging,            
-            "nofork"      => \$nofork,
-	    "database=s"  => \$database,
-	    "start=s"     => \$start,
-	    "end=s"       => \$end,
-	    "policy=s"    => \$policy,
-	    "query=s"     => \$query,
-           ) or die;
+GetOptions(
+    "help|h|?"    => \$help,
+    "config=s"    => \$config,
+    "logging=s"   => \$logging,            
+    "nofork"      => \$nofork,
+    "database=s"  => \$database,
+    "start=s"     => \$start,
+    "end=s"       => \$end,
+    "policy=s"    => \$policy,
+    "query=s"     => \$query,
+) or die;
 
 # did they ask for help?
 usage() if $help;
+
 
 GRNOC::Log->new(config => $logging);
 
@@ -70,13 +75,18 @@ if (defined $start){
     $nofork = 1;
 }
 
-my $aggregator = GRNOC::TSDS::Aggregate::Daemon->new(config_file     => $config,
-						     force_database  => $database,
-						     force_policy    => $policy,
-						     force_query     => $query,
-						     force_start     => $start,
-						     force_end       => $end,
-						     daemonize       => !$nofork);
+my $config_obj = new GRNOC::TSDS::Aggregate::Config(
+    config_file => $config
+);
+my $aggregator = GRNOC::TSDS::Aggregate::Daemon->new(
+    config          => $config_obj,
+    force_database  => $database,
+    force_policy    => $policy,
+    force_query     => $query,
+    force_start     => $start,
+    force_end       => $end,
+    daemonize       => !$nofork
+);
 
 $aggregator->start();                                    
 

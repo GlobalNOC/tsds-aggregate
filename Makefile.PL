@@ -4,8 +4,10 @@ use warnings;
 use ExtUtils::MakeMaker;
 
 sub MY::postamble { <<'END'; }
+venv:
+	carton install
 
-rpm:	dist
+rpm: venv manifest dist
 	rpmbuild -ta grnoc-tsds-aggregate-$(VERSION).tar.gz
 END
 
@@ -30,5 +32,5 @@ WriteMakefile(
               PREREQ_PM => {
                            },
               dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-              clean               => { FILES => 'grnoc-tsds-aggregate-*' },
+              clean               => { FILES => 'grnoc-tsds-aggregate-* venv' },
              );

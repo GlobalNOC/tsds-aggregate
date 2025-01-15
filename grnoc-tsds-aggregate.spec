@@ -1,30 +1,22 @@
+%global debug_package %{nil}
+%global _binaries_in_noarch_packages_terminate_build   0
+%define perl_lib /opt/grnoc/venv/
+AutoReqProv: no # Keep rpmbuild from trying to figure out Perl on its own
+
 Summary: GRNOC TSDS Aggregate
 Name: grnoc-tsds-aggregate
-Version: 1.2.2
+Version: 1.2.3
 Release: 1%{?dist}
 License: GRNOC
 Group: Measurement
 URL: http://globalnoc.iu.edu
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
-BuildArch: noarch
+
 Requires: perl >= 5.8.8
-Requires: perl-Try-Tiny
 Requires: perl-GRNOC-Log
-Requires: perl-GRNOC-Config
-Requires: perl-Proc-Daemon
-Requires: perl-List-MoreUtils
-Requires: perl-MongoDB >= 1.6.1
-Requires: perl-Net-AMQP-RabbitMQ
-Requires: perl-JSON-XS
-Requires: perl-Redis
-Requires: perl-Redis-DistLock
-Requires: perl-Time-HiRes
-Requires: perl-Moo
-Requires: perl-Types-XSD-Lite
-Requires: perl-Parallel-ForkManager
+Requires: perl-GRNOC-Config == 1.0.9
 Requires: perl-GRNOC-WebService-Client >= 1.3.3
-Requires: perl-Math-Round
 Requires: perl-GRNOC-TSDS-Aggregate-Histogram >= 1.0.1
 
 %description
@@ -58,6 +50,11 @@ make pure_install
 
 %{__install} bin/tsds-aggregate-daemon  %{buildroot}/usr/bin/tsds-aggregate-daemon
 %{__install} bin/tsds-aggregate-workers %{buildroot}/usr/bin/tsds-aggregate-workers
+%{__install} bin/tsds-aggregate-worker.pl %{buildroot}/usr/bin/tsds-aggregate-worker.pl
+
+%{__install} -d -p %{buildroot}/opt/grnoc/venv/%{name}/lib/perl5
+cp -r local/lib/perl5/* -t %{buildroot}/opt/grnoc/venv/%{name}/lib/perl5
+
 
 # clean up buildroot
 find %{buildroot} -name .packlist -exec %{__rm} {} \;
@@ -80,15 +77,19 @@ rm -rf $RPM_BUILD_ROOT
 /usr/share/doc/grnoc/tsds-aggregate/INSTALL.md
 
 %{perl_vendorlib}/GRNOC/TSDS/Aggregate.pm
+%{perl_vendorlib}/GRNOC/TSDS/Aggregate/Config.pm
 %{perl_vendorlib}/GRNOC/TSDS/Aggregate/Daemon.pm
 %{perl_vendorlib}/GRNOC/TSDS/Aggregate/Aggregator.pm
 %{perl_vendorlib}/GRNOC/TSDS/Aggregate/Aggregator/Worker.pm
 %{perl_vendorlib}/GRNOC/TSDS/Aggregate/Aggregator/Message.pm
 
+/usr/share/man/man3/GRNOC::TSDS::Aggregate::Config.3pm.gz
+
 %defattr(754, root, root, -)
 
 /usr/bin/tsds-aggregate-daemon
 /usr/bin/tsds-aggregate-workers
+/usr/bin/tsds-aggregate-worker.pl
 
 /etc/init.d/tsds-aggregate-daemon
 /etc/init.d/tsds-aggregate-workers
@@ -96,3 +97,4 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(755, root, root, -)
 
 %dir /var/lib/grnoc/tsds/aggregate/
+/opt/grnoc/venv/%{name}/lib/perl5/*

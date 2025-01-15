@@ -3,6 +3,8 @@
 use strict;
 use warnings;
 
+use lib '/opt/grnoc/venv/grnoc-tsds-aggregate/lib/perl5';
+
 use GRNOC::TSDS::Aggregate::Aggregator;
 
 use Getopt::Long;

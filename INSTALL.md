@@ -2,6 +2,19 @@
 
 This document covers installing the TSDS aggregation process on a new machine. Steps should be followed below in order unless you know for sure what you are doing. This document assumes a RedHat Linux environment or one of its derivatives.
 
+## Build
+Both RPM and Docker Images are build using the following commands:
+
+```
+VERSION=1.2.3
+rm -f *.rpm
+rm -rf local/ vendor/ blib/
+docker build -t "containers.github.grnoc.iu.edu/ndca/tsds-aggregate:$VERSION" .
+docker run --entrypoint /bin/sleep --name tsds-aggregate-rpm --rm -d "containers.github.grnoc.iu.edu/ndca/tsds-aggregate:$VERSION" 3
+docker cp tsds-aggregate-rpm:/root/grnoc-tsds-aggregate-$VERSION-1.el8.x86_64.rpm .
+docker push containers.github.grnoc.iu.edu/ndca/tsds-aggregate:$VERSION
+```
+
 ## Installation
 
 Installing these packages is just a yum command away. Nothing will automatically start after installation as we need to move on to configuration.
@@ -9,6 +22,34 @@ Installing these packages is just a yum command away. Nothing will automatically
 ```
 [root@tsds ~]# yum install grnoc-tsds-aggregate
 ```
+
+## Configuration (Environment Variables)
+
+- `TSDS_AGGREGATE_CONCURRENT_MEASUREMENTS`: How many measurements to process in a single batch.
+- `TSDS_AGGREGATE_MESSAGE_SIZE`: How many measurements to include in a single rabbit message.
+- `TSDS_AGGREGATE_LOCK_TIMEOUT`: How long in seconds to hold redis locks (unlikely you should have to change this).
+- `TSDS_AGGREGATE_MAX_DOCS_PER_BLOCK`: How many documents can be read in a single block. This should be greater than the num_concurrent_measurements to avoid extra looping. A single ->find from the data collections will retrieve this many at most, avoiding timeouts on very large requests if a lot of documents have been dirtied.
+- `TSDS_AGGREGATE_DAEMON_PID_FILE`: Where should we write the aggregator master pid file.
+- `TSDS_AGGREGATE_WORKER_PID_FILE`: Where should we write the aggregator worker pid file.
+- `TSDS_AGGREGATE_TSDS_USER`: TSDS web service login details.
+- `TSDS_AGGREGATE_TSDS_PASS`: TSDS web service login details.
+- `TSDS_AGGREGATE_TSDS_REALM`: TSDS web service login details.
+- `TSDS_AGGREGATE_TSDS_URL`: TSDS web service login details.
+- `TSDS_AGGREGATE_TSDS_CLOUD`: TSDS web service login details.
+- `MONGODB_URI`: MongoDB URI string. Prefered over other MongoDB options.
+- `MONGODB_USER`: MongoDB username.
+- `MONGODB_PASS`: MongoDB password.
+- `MONGODB_HOST`: MongoDB host.
+- `MONGODB_PORT`: MongoDB port.
+- `RABBITMQ_USER`: RabbitMQ username.
+- `RABBITMQ_PASS`: RabbitMQ password.
+- `RABBITMQ_HOST`: RabbitMQ host.
+- `RABBITMQ_PORT`: RabbitMQ port.
+- `RABBITMQ_PENDING_QUEUE`: RabbitMQ queue name.
+- `RABBITMQ_FAILED_QUEUE`: RabbitMQ queue name.
+- `RABBITMQ_FINISHED_QUEUE`: RabbitMQ queue name.
+- `REDIS_HOST`: Redis host.
+- `REDIS_PORT`: Redis port.
 
 
 ## tsds-aggregate-daemon
